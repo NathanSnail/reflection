@@ -38,14 +38,20 @@ function Reflection_RegisterProjectile(path)
 end
 function RegisterGunAction() end
 
+local DEBUG_DUMP = true
+
+if DEBUG_DUMP then print("{") end
 for _, action in ipairs(actions) do
 	---@type table<integer, table<string, table<string, number | boolean>>>
 	local mapped = {}
 	---@type table<string, table<string, type>>
-	local include = {}
+	local include = { _G = { current_reload_time = "number" } }
 	for _, initial in ipairs({ 0, 1, 2 }) do
 		---Maps from handler string to the table that holds its data
-		local handlers = {}
+		---@type table<string, table<string, any>>
+		local handlers = { _G = _G }
+
+		mapped[initial] = { _G = {} }
 
 		---Includes table and sets the numbers to initial
 		---@param prefix string
@@ -64,13 +70,12 @@ for _, action in ipairs(actions) do
 				end
 			end
 		end
-		mapped[initial] = { _G = {} }
 
 		shot_effects = {}
 		---@diagnostic disable-next-line: undefined-global
 		ConfigGunShotEffects_Init(shot_effects)
 		handle_table("shot_effects", shot_effects)
-		current_reload_time = 0
+		current_reload_time = initial
 
 		---@diagnostic disable-next-line: missing-parameter
 		local shot = create_shot()
@@ -79,15 +84,27 @@ for _, action in ipairs(actions) do
 		set_current_action(action)
 		action.action()
 
-		-- send the action info to the game
-		register_action(c)
+		local bans = {
+			"action_ai_never_uses",
+			"action_mana_drain",
+			"action_max_uses",
+			"action_never_unlimited",
+			"action_spawn_manual_unlock",
+			"action_type",
+			"state_destroyed_action",
+			"state_discarded_action",
+			"state_shuffled",
+		}
+
+		for _, v in ipairs(bans) do
+			include.c[v] = nil
+		end
+
 		for prefix, _ in pairs(include) do
 			for k, _ in pairs(include[prefix]) do
 				mapped[initial][prefix][k] = handlers[prefix][k]
 			end
 		end
-
-		mapped[initial]._G.current_reload_time = current_reload_time
 	end
 
 	---@generic T
@@ -126,6 +143,9 @@ for _, action in ipairs(actions) do
 
 		-- floats so imprecise equal
 		if math.abs(delta) < 1e-10 then
+			-- if we have y = 1x + 0 then thats identity aka stupid
+			-- we only do 1 - 0 in float land so the result should be exact
+			if a == 1 and b == 0 then return end
 			---@type reflection.AffineTransformation
 			local transformation = { a = a, b = b, kind = "reflection.AffineTransformation" }
 			transformations[prefix][field_name] = transformation
@@ -192,7 +212,12 @@ for _, action in ipairs(actions) do
 		return tostring(v)
 	end
 
-	print(dump(transformations))
+	if DEBUG_DUMP then
+		print('["' .. action.id .. '"]=')
+		print(dump(transformations))
+		print(",")
+	end
 end
+if DEBUG_DUMP then print("}") end
 
 reflecting = false
