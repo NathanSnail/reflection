@@ -1,0 +1,3 @@
+[submodule "noita_stubs"]
+	path = noita_stubs
+	url = https://github.com/NathanSnail/noita_stubs.git

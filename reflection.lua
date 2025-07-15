@@ -16,5 +16,7 @@ function require(modname)
 	return dofile_once(require_path(modname))
 end
 
+require "generate_reflection"
+
 require_path = _require_path
 require = _require
