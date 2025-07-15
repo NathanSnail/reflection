@@ -1,6 +1,6 @@
 local empty_path = "data/reflection/_empty.txt"
 ModTextFileSetContent(empty_path, "")
-local whoami = ModImageWhoSetContent(empty_path)
+local whoami = ModTextFileWhoSetContent(empty_path)
 local _require = require
 local _require_path = require_path
 

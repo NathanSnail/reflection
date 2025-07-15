@@ -32,20 +32,13 @@ reflecting = true
 ---@alias reflection.BooleanTransformation reflection.NotTransformation | reflection.FixedTransformation | reflection.ImpureTransformation
 ---@alias reflection.Transformation reflection.NumericTransformation | reflection.BooleanTransformation
 
-for _, action in ipairs(actions) do
-	-- vanilla behaviour to get correct register action
-	---@diagnostic disable-next-line: undefined-global
-	ConfigGunShotEffects_Init(shot_effects)
-	current_reload_time = 0
-	---@diagnostic disable-next-line: missing-parameter
-	local shot = create_shot()
-	c = shot.state
-	set_current_action(action)
-	action.action()
-	-- send the action info to the game
-	register_action(c)
+local store = {}
+function Reflection_RegisterProjectile(path)
+	table.insert(store, path)
+end
+function RegisterGunAction() end
 
-	-- reflection to identify if this is an affine function
+for _, action in ipairs(actions) do
 	---@type table<integer, table<string, table<string, number | boolean>>>
 	local mapped = {}
 	---@type table<string, table<string, type>>
@@ -80,7 +73,7 @@ for _, action in ipairs(actions) do
 		current_reload_time = 0
 
 		---@diagnostic disable-next-line: missing-parameter
-		shot = create_shot()
+		local shot = create_shot()
 		c = shot.state
 		handle_table("c", c)
 		set_current_action(action)
@@ -176,8 +169,12 @@ for _, action in ipairs(actions) do
 	for prefix, fields in pairs(include) do
 		transformations[prefix] = {}
 		for field_name, ty in pairs(fields) do
+			for _, v in ipairs({ 0, 1, 2 }) do
+				if mapped[v][prefix][field_name] == nil then goto continue end
+			end
 			if ty == "number" then handle_numeric_transformation(prefix, field_name) end
 			if ty == "boolean" then handle_boolean_transformation(prefix, field_name) end
+			::continue::
 		end
 	end
 
@@ -195,7 +192,7 @@ for _, action in ipairs(actions) do
 		return tostring(v)
 	end
 
-	dump(transformations)
+	print(dump(transformations))
 end
 
 reflecting = false
